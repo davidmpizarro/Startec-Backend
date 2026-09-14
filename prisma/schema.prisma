@@ -1,0 +1,119 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum EstadoMatricula {
+  NO_INICIADO
+  EN_PROCESO
+  PAGADO_PENDIENTE_HORARIO
+  MATRICULADO_CONFIRMADO
+}
+
+enum DiaSemana {
+  LUNES
+  MARTES
+  MIERCOLES
+  JUEVES
+  VIERNES
+  SABADO
+}
+
+// 1. Carreras de Tecsup (ej: Diseño y Desarrollo de Software)
+model Carrera {
+  id              String       @id @default(uuid())
+  codigo          String       @unique // ej: "C11", "C12"
+  nombre          String       // ej: "Diseño y Desarrollo de Software"
+  sede            String       // ej: "Lima - Santa Anita"
+  totalCiclos     Int          @default(6)
+  cursos          Curso[]
+  secciones       Seccion[]
+  estudiantes     Estudiante[]
+}
+
+// 2. Malla Curricular Oficial de la Carrera
+model Curso {
+  id              String            @id @default(uuid())
+  carreraId       String
+  carrera         Carrera           @relation(fields: [carreraId], references: [id])
+  codigo          String            // ej: "CS101"
+  nombre          String            // ej: "Fundamentos de Programación"
+  ciclo           Int               // 1 para primer ciclo
+  creditos        Int               // ej: 4
+  horasSemanales  Int               // ej: 6
+  tipoCompetencia String?           // 'Específica técnica' o 'Empleabilidad'
+  horarios        SesionHorario[]
+}
+
+// 3. Secciones fijas por Carrera y Ciclo (El bloque que asigna Tecsup)
+model Seccion {
+  id              String            @id @default(uuid())
+  carreraId       String
+  carrera         Carrera           @relation(fields: [carreraId], references: [id])
+  ciclo           Int               // ej: 1
+  codigoSeccion   String            // ej: "1A", "1B", "1C"
+  periodo         String            // ej: "2026-1"
+  aulaBase        String?           // ej: "Pabellón B - Aula 204"
+  horarios        SesionHorario[]
+  estudiantes     Estudiante[]
+}
+
+// 4. Detalle de horarios semanales por cada curso de la sección
+model SesionHorario {
+  id              String            @id @default(uuid())
+  seccionId       String
+  seccion         Seccion           @relation(fields: [seccionId], references: [id])
+  cursoId         String
+  curso           Curso             @relation(fields: [cursoId], references: [id])
+  dia             DiaSemana
+  horaInicio      String            // "08:00"
+  horaFin         String            // "10:30"
+  aula            String            // "Lab 302"
+  docente         String            // "Ing. Carlos Mendoza"
+}
+
+// 5. Estudiantes Admitidos
+model Estudiante {
+  id                  String          @id @default(uuid())
+  dni                 String          @unique // Usuario inicial
+  passwordHash        String          // Hash de su DNI al inicio
+  nombres             String
+  apellidos           String
+  correoPersonal      String?
+  correoInstitucional String?         // Se genera después
+  telefono            String?
+  
+  // Carrera y Sección asignada por Tecsup
+  carreraId           String
+  carrera             Carrera         @relation(fields: [carreraId], references: [id])
+  cicloActual         Int             @default(1)
+  seccionId           String?         // Sección asignada (ej: "1A")
+  seccion             Seccion?        @relation(fields: [seccionId], references: [id])
+  // Biometría y Seguridad
+  biometriaRegistrada Boolean         @default(false)
+  fotoPerfilUrl       String?
+  tokenBiometrico     String?         // Hash o secret vinculado al hardware del móvil
+  // Gamificación y Matrícula
+  pasoActualMatricula Int             @default(1)
+  estadoMatricula     EstadoMatricula @default(NO_INICIADO)
+  horarioLiberado     Boolean         @default(false) // Si coordinación ya habilitó ver el horario
+  pagos               Pago[]
+  createdAt           DateTime        @default(now())
+}
+
+// 6. Pagos de Matrícula (Pasarela)
+model Pago {
+  id              String          @id @default(uuid())
+  estudianteId    String
+  estudiante      Estudiante      @relation(fields: [estudianteId], references: [id])
+  monto           Decimal         @db.Decimal(10, 2)
+  moneda          String          @default("PEN")
+  concepto        String          // "Cuota Matrícula 2026-1"
+  estado          String          // "APROBADO", "PENDIENTE", "RECHAZADO"
+  transaccionId   String?         // ID de pasarela (Culqi/Niubiz/etc.)
+  fechaPago       DateTime        @default(now())
+}
