@@ -1,6 +1,6 @@
 # StarTec Backend (NestJS + Prisma + PostgreSQL)
 
-Backend de servicios para la aplicación móvil **StarTec** en Flutter, brindando autenticación con DNI y biometría, gestión de matrícula, consulta de perfil y asignación de horarios por secciones fijas en Tecsup.
+Backend de servicios para la aplicación móvil **StarTec** en Flutter, brindando autenticación con DNI y biometría, selección dinámica de carreras de Tecsup, gestión de matrícula, consulta de perfil y asignación de horarios por secciones fijas.
 
 ---
 
@@ -8,7 +8,7 @@ Backend de servicios para la aplicación móvil **StarTec** en Flutter, brindand
 
 - **Framework**: [NestJS](https://nestjs.com/) v10
 - **ORM**: [Prisma ORM](https://www.prisma.io/) v5
-- **Base de Datos**: PostgreSQL
+- **Base de Datos**: PostgreSQL 16 (Docker)
 - **Autenticación**: Passport JWT + Bcrypt
 - **Validaciones**: class-validator & class-transformer
 
@@ -20,9 +20,10 @@ Backend de servicios para la aplicación móvil **StarTec** en Flutter, brindand
 startec-backend/
 ├── prisma/
 │   ├── schema.prisma       # Modelado de datos PostgreSQL
-│   └── seed.ts             # Script de seed con datos iniciales de Tecsup
+│   └── seed.ts             # Datos maestros: C24 (Software), C11 (Mecatrónica), C12 (Electrónica)
 ├── src/
-│   ├── auth/               # Login DNI, registro biométrico, login biométrico y JWT guard
+│   ├── auth/               # Registro dinámico, login DNI, registro biométrico, login biométrico
+│   ├── carreras/           # Catálogo público de carreras de Tecsup (GET /carreras)
 │   ├── common/             # Decorador @CurrentUser y Guards reutilizables
 │   ├── estudiantes/        # Perfil y control de pasos del flujo de matrícula
 │   ├── horarios/           # Consulta de horarios por sección fija asignada
@@ -30,6 +31,7 @@ startec-backend/
 │   ├── prisma/             # PrismaService y PrismaModule global
 │   ├── app.module.ts       # Módulo principal
 │   └── main.ts             # Entrada de la aplicación con CORS y ValidationPipe
+├── docker-compose.yml      # Contenedor PostgreSQL 16
 ├── .env                    # Configuración de entorno y DATABASE_URL
 ├── package.json
 └── tsconfig.json
@@ -37,30 +39,25 @@ startec-backend/
 
 ---
 
-## ⚙️ Configuración e Instalación
+## ⚙️ Configuración e Inicialización
 
-### 1. Variables de entorno
-Configura tu cadena de conexión a PostgreSQL en el archivo `.env`:
-```env
-PORT=3000
-DATABASE_URL="postgresql://postgres:tu_password@localhost:5432/startec_db?schema=public"
-JWT_SECRET="startec_super_secret_jwt_key_2026"
-JWT_EXPIRES_IN="7d"
+### 1. Levantar la Base de Datos PostgreSQL
+```bash
+docker compose up -d
 ```
 
-### 2. Sincronización y Migración de la Base de Datos
-Para aplicar el esquema a tu base de datos PostgreSQL:
+### 2. Sincronizar Esquema y Generar Prisma Client
 ```bash
 npx prisma db push
 ```
 
-### 3. Cargar Datos de Prueba (Seed Tecsup)
-Para poblar la base de datos con la carrera C11 (Diseño y Desarrollo de Software), cursos del ciclo 1, la sección 1A, sus horarios semanales y el estudiante de prueba:
+### 3. Cargar Datos Maestros (Seed Tecsup)
+Puebla las carreras (`C24`, `C11`, `C12`), secciones base de primer ciclo (`C24-1A`, `C11-1A`, `C12-1A`), cursos oficiales y horarios:
 ```bash
 npm run prisma:seed
 ```
 
-### 4. Iniciar el Servidor en Desarrollo
+### 4. Iniciar Servidor en Desarrollo
 ```bash
 npm run start:dev
 ```
@@ -69,20 +66,40 @@ npm run start:dev
 
 ## 🚀 Endpoints de la API
 
-### 1. Autenticación (`/auth`)
+### 1. Catálogo de Carreras (`/carreras`) - *Público*
 | Método | Endpoint | Autenticación | Descripción |
 | :--- | :--- | :--- | :--- |
+| `GET` | `/carreras` | Pública | Listado de carreras disponibles (`id`, `codigo`, `nombre`, `sede`) para el Dropdown en Flutter |
+| `GET` | `/carreras/:id` | Pública | Detalle de una carrera con sus cursos de ciclo 1 |
+
+### 2. Autenticación y Registro (`/auth`)
+| Método | Endpoint | Autenticación | Descripción |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/auth/register` | Pública | Registro dinámico seleccionando carrera (`codigoCarrera` o `carreraId`). Retorna JWT y perfil con cursos |
 | `POST` | `/auth/login` | Pública | Login inicial con `dni` y `password` |
 | `POST` | `/auth/register-biometric` | Bearer JWT | Vincula el `tokenBiometrico` del móvil |
 | `POST` | `/auth/biometric-login` | Pública | Login rápido con `dni` y `tokenBiometrico` |
 
-### 2. Estudiantes (`/estudiantes`)
+#### Payload de Registro (`POST /auth/register`):
+```json
+{
+  "dni": "72123456",
+  "password": "password123",
+  "nombres": "Juan Carlos",
+  "apellidos": "Pérez Quispe",
+  "codigoCarrera": "C24",
+  "correoPersonal": "juan.perez@gmail.com",
+  "telefono": "987654321"
+}
+```
+
+### 3. Estudiantes (`/estudiantes`)
 | Método | Endpoint | Autenticación | Descripción |
 | :--- | :--- | :--- | :--- |
-| `GET` | `/estudiantes/perfil` | Bearer JWT | Perfil completo (carrera, sección, estado) |
+| `GET` | `/estudiantes/perfil` | Bearer JWT | Perfil completo (carrera, cursos, sección, estado) |
 | `PATCH` | `/estudiantes/paso-matricula` | Bearer JWT | Actualiza el paso del onboarding (`paso`) |
 
-### 3. Matrícula y Pagos (`/matricula`)
+### 4. Matrícula y Pagos (`/matricula`)
 | Método | Endpoint | Autenticación | Descripción |
 | :--- | :--- | :--- | :--- |
 | `POST` | `/matricula/pagar` | Bearer JWT | Registra y aprueba el pago de matrícula |
@@ -90,17 +107,8 @@ npm run start:dev
 | `GET` | `/matricula/historial-pagos` | Bearer JWT | Historial de pagos del estudiante |
 | `GET` | `/matricula/estado` | Bearer JWT | Estado actual de matrícula y pagos |
 
-### 4. Horarios (`/horarios`)
+### 5. Horarios (`/horarios`)
 | Método | Endpoint | Autenticación | Descripción |
 | :--- | :--- | :--- | :--- |
-| `GET` | `/horarios/mi-horario` | Bearer JWT | Horario semanal de la sección del alumno |
+| `GET` | `/horarios/mi-horario` | Bearer JWT | Horario semanal ordenado por día y hora |
 | `GET` | `/horarios/seccion/:seccionId` | Bearer JWT | Horario completo de una sección |
-
----
-
-## 👤 Credenciales del Estudiante de Prueba
-
-- **DNI**: `72123456`
-- **Contraseña inicial**: `password123` (o su mismo DNI `72123456`)
-- **Carrera**: Diseño y Desarrollo de Software (C11)
-- **Sección**: 1A

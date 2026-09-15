@@ -15,6 +15,7 @@ export class EstudiantesService {
           include: {
             cursos: {
               where: { ciclo: 1 },
+              orderBy: { codigo: 'asc' },
             },
           },
         },
@@ -59,7 +60,14 @@ export class EstudiantesService {
         estadoMatricula: nuevoEstado,
       },
       include: {
-        carrera: true,
+        carrera: {
+          include: {
+            cursos: {
+              where: { ciclo: 1 },
+              orderBy: { codigo: 'asc' },
+            },
+          },
+        },
         seccion: true,
       },
     });
