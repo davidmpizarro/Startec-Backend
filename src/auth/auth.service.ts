@@ -75,7 +75,7 @@ export class AuthService {
           carreraId: carrera.id,
           ciclo: 1,
           codigoSeccion: codigoSec,
-          periodo: '2026-1',
+          periodo: '2027-1',
           aulaBase: 'Pabellón B - Aula 204',
         },
       });

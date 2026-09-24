@@ -1,11 +1,12 @@
-import { PrismaClient, DiaSemana } from '@prisma/client';
+import { PrismaClient, DiaSemana, EstadoMatricula } from '@prisma/client';
+import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Iniciando carga de datos maestros para Tecsup (StarTec)...');
+  console.log('🌱 Iniciando carga de datos de prueba para Tecsup (StarTec)...');
 
-  // Limpieza inicial para evitar conflictos de claves foráneas
+  // Limpieza inicial para evitar duplicados en re-seeds
   await prisma.pago.deleteMany();
   await prisma.sesionHorario.deleteMany();
   await prisma.estudiante.deleteMany();
@@ -13,10 +14,8 @@ async function main() {
   await prisma.curso.deleteMany();
   await prisma.carrera.deleteMany();
 
-  // =========================================================================
-  // 1. CARRERA C24: Diseño y Desarrollo de Software
-  // =========================================================================
-  const carreraC24 = await prisma.carrera.create({
+  // 1. Crear Carrera C24 - Diseño y Desarrollo de Software
+  const carrera = await prisma.carrera.create({
     data: {
       codigo: 'C24',
       nombre: 'Diseño y Desarrollo de Software',
@@ -24,55 +23,10 @@ async function main() {
       totalCiclos: 6,
     },
   });
-  console.log(`✅ Carrera creada: ${carreraC24.nombre} (${carreraC24.codigo})`);
+  console.log(`✅ Carrera creada: ${carrera.nombre} (${carrera.codigo})`);
 
-  // 6 Cursos reales oficiales de 1er ciclo para C24
-  const cursosC24Data = [
-    {
-      codigo: 'EG101',
-      nombre: 'Técnicas de Expresión Oral y Escrita',
-      ciclo: 1,
-      creditos: 3,
-      horasSemanales: 4,
-      tipoCompetencia: 'Empleabilidad',
-      carreraId: carreraC24.id,
-    },
-    {
-      codigo: 'MA101',
-      nombre: 'Cálculo y Estadística',
-      ciclo: 1,
-      creditos: 4,
-      horasSemanales: 5,
-      tipoCompetencia: 'Empleabilidad',
-      carreraId: carreraC24.id,
-    },
-    {
-      codigo: 'DP101',
-      nombre: 'Desarrollo Personal',
-      ciclo: 1,
-      creditos: 2,
-      horasSemanales: 3,
-      tipoCompetencia: 'Empleabilidad',
-      carreraId: carreraC24.id,
-    },
-    {
-      codigo: 'CB101',
-      nombre: 'Ciencias Básicas Aplicadas',
-      ciclo: 1,
-      creditos: 3,
-      horasSemanales: 4,
-      tipoCompetencia: 'Específica técnica',
-      carreraId: carreraC24.id,
-    },
-    {
-      codigo: 'CS102',
-      nombre: 'Diseño de Interfaces de Programación',
-      ciclo: 1,
-      creditos: 4,
-      horasSemanales: 5,
-      tipoCompetencia: 'Específica técnica',
-      carreraId: carreraC24.id,
-    },
+  // 2. Crear Cursos del 1er Ciclo
+  const cursosData = [
     {
       codigo: 'CS101',
       nombre: 'Fundamentos de Programación',
@@ -80,34 +34,107 @@ async function main() {
       creditos: 4,
       horasSemanales: 6,
       tipoCompetencia: 'Específica técnica',
-      carreraId: carreraC24.id,
+      carreraId: carrera.id,
+    },
+    {
+      codigo: 'CS102',
+      nombre: 'Modelado y Diseño de Base de Datos',
+      ciclo: 1,
+      creditos: 4,
+      horasSemanales: 5,
+      tipoCompetencia: 'Específica técnica',
+      carreraId: carrera.id,
+    },
+    {
+      codigo: 'CS103',
+      nombre: 'Arquitectura y Organización de Computadoras',
+      ciclo: 1,
+      creditos: 3,
+      horasSemanales: 4,
+      tipoCompetencia: 'Específica técnica',
+      carreraId: carrera.id,
+    },
+    {
+      codigo: 'EG101',
+      nombre: 'Comunicación y Redacción Efectiva',
+      ciclo: 1,
+      creditos: 3,
+      horasSemanales: 4,
+      tipoCompetencia: 'Empleabilidad',
+      carreraId: carrera.id,
+    },
+    {
+      codigo: 'MA101',
+      nombre: 'Matemática Aplicada a la Computación',
+      ciclo: 1,
+      creditos: 4,
+      horasSemanales: 5,
+      tipoCompetencia: 'Específica técnica',
+      carreraId: carrera.id,
     },
   ];
 
-  const cursosC24 = [];
-  for (const c of cursosC24Data) {
+  const cursos = [];
+  for (const c of cursosData) {
     const curso = await prisma.curso.create({ data: c });
-    cursosC24.push(curso);
+    cursos.push(curso);
   }
-  console.log(`   └─ ${cursosC24.length} cursos oficiales creados para ${carreraC24.codigo}`);
+  console.log(`✅ ${cursos.length} cursos de 1er ciclo creados`);
 
-  // Sección base C24-1A
-  const seccionC24 = await prisma.seccion.create({
+  // 3. Crear Sección 1A
+  const seccion = await prisma.seccion.create({
     data: {
-      carreraId: carreraC24.id,
+      carreraId: carrera.id,
       ciclo: 1,
-      codigoSeccion: 'C24-1A',
+      codigoSeccion: '1A',
       periodo: '2026-1',
       aulaBase: 'Pabellón B - Aula 204',
     },
   });
-  console.log(`   └─ Sección base creada: ${seccionC24.codigoSeccion}`);
+  // 3.1 Crear Secciones 1A para C12 y C14
+  const carreraC12 = await prisma.carrera.create({
+    data: {
+      codigo: 'C12',
+      nombre: 'Producción y Gestión Industrial',
+      sede: 'Lima - Santa Anita',
+      totalCiclos: 6,
+    },
+  });
+  await prisma.seccion.create({
+    data: {
+      carreraId: carreraC12.id,
+      ciclo: 1,
+      codigoSeccion: '1A',
+      periodo: '2026-1',
+      aulaBase: 'Pabellón C - Aula 301',
+    },
+  });
+  console.log(`✅ Carrera y Sección 1A creadas para ${carreraC12.codigo}`);
 
-  // Horarios semanales para C24-1A
-  const horariosC24 = [
+  const carreraC14 = await prisma.carrera.create({
+    data: {
+      codigo: 'C14',
+      nombre: 'Aviónica y Mecánica Aeronáutica',
+      sede: 'Lima - Santa Anita',
+      totalCiclos: 6,
+    },
+  });
+  await prisma.seccion.create({
+    data: {
+      carreraId: carreraC14.id,
+      ciclo: 1,
+      codigoSeccion: '1A',
+      periodo: '2026-1',
+      aulaBase: 'Pabellón M - Taller 102',
+    },
+  });
+  console.log(`✅ Carrera y Sección 1A creadas para ${carreraC14.codigo}`);
+
+  // 4. Detalle de Horarios Semanales (Lunes a Viernes)
+  const horariosData = [
     {
-      seccionId: seccionC24.id,
-      cursoId: cursosC24.find((c) => c.codigo === 'CS101')!.id,
+      seccionId: seccion.id,
+      cursoId: cursos.find((c) => c.codigo === 'CS101')!.id,
       dia: DiaSemana.LUNES,
       horaInicio: '08:00',
       horaFin: '11:00',
@@ -115,8 +142,8 @@ async function main() {
       docente: 'Ing. Carlos Mendoza',
     },
     {
-      seccionId: seccionC24.id,
-      cursoId: cursosC24.find((c) => c.codigo === 'CS102')!.id,
+      seccionId: seccion.id,
+      cursoId: cursos.find((c) => c.codigo === 'CS102')!.id,
       dia: DiaSemana.MARTES,
       horaInicio: '08:00',
       horaFin: '10:30',
@@ -124,8 +151,8 @@ async function main() {
       docente: 'Ing. Patricia Ramos',
     },
     {
-      seccionId: seccionC24.id,
-      cursoId: cursosC24.find((c) => c.codigo === 'MA101')!.id,
+      seccionId: seccion.id,
+      cursoId: cursos.find((c) => c.codigo === 'MA101')!.id,
       dia: DiaSemana.MIERCOLES,
       horaInicio: '08:00',
       horaFin: '11:00',
@@ -133,193 +160,63 @@ async function main() {
       docente: 'Lic. Roberto Gómez',
     },
     {
-      seccionId: seccionC24.id,
-      cursoId: cursosC24.find((c) => c.codigo === 'CB101')!.id,
+      seccionId: seccion.id,
+      cursoId: cursos.find((c) => c.codigo === 'CS103')!.id,
       dia: DiaSemana.JUEVES,
       horaInicio: '08:00',
       horaFin: '10:30',
-      aula: 'Lab Ciencias 102',
-      docente: 'Fís. Eduardo Flores',
+      aula: 'Lab 201',
+      docente: 'Ing. Fernando Alva',
     },
     {
-      seccionId: seccionC24.id,
-      cursoId: cursosC24.find((c) => c.codigo === 'EG101')!.id,
+      seccionId: seccion.id,
+      cursoId: cursos.find((c) => c.codigo === 'EG101')!.id,
       dia: DiaSemana.VIERNES,
       horaInicio: '08:00',
       horaFin: '10:30',
       aula: 'Pabellón B - Aula 204',
       docente: 'Mg. Carmen Torres',
     },
-    {
-      seccionId: seccionC24.id,
-      cursoId: cursosC24.find((c) => c.codigo === 'DP101')!.id,
-      dia: DiaSemana.SABADO,
-      horaInicio: '09:00',
-      horaFin: '11:30',
-      aula: 'Auditorio 1',
-      docente: 'Psic. Claudia Navarro',
-    },
   ];
 
-  for (const h of horariosC24) {
+  for (const h of horariosData) {
     await prisma.sesionHorario.create({ data: h });
   }
-  console.log(`   └─ ${horariosC24.length} sesiones de horario asignadas a ${seccionC24.codigoSeccion}`);
+  console.log(`✅ ${horariosData.length} sesiones de horario asignadas a la sección 1A`);
 
-  // =========================================================================
-  // 2. CARRERA C11: Mecatrónica Industrial
-  // =========================================================================
-  const carreraC11 = await prisma.carrera.create({
+  // 5. Estudiante Admitido de Prueba
+  const defaultPassword = '72123456'; // También compatible con su DNI
+  const passwordHash = await bcrypt.hash(defaultPassword, 10);
+
+  const estudiante = await prisma.estudiante.create({
     data: {
-      codigo: 'C11',
-      nombre: 'Mecatrónica Industrial',
-      sede: 'Lima - Santa Anita',
-      totalCiclos: 6,
+      dni: '72123456',
+      passwordHash,
+      nombres: 'Juan Carlos',
+      apellidos: 'Pérez Quispe',
+      correoPersonal: 'juan.perez@gmail.com',
+      correoInstitucional: 'juan.perez@tecsup.edu.pe',
+      telefono: '987654321',
+      carreraId: carrera.id,
+      seccionId: seccion.id,
+      cicloActual: 1,
+      biometriaRegistrada: false,
+      tokenBiometrico: null,
+      fotoPerfilUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400',
+      pasoActualMatricula: 1,
+      estadoMatricula: EstadoMatricula.NO_INICIADO,
+      horarioLiberado: true,
     },
   });
-  console.log(`✅ Carrera creada: ${carreraC11.nombre} (${carreraC11.codigo})`);
 
-  const cursosC11Data = [
-    {
-      codigo: 'MI101',
-      nombre: 'Introducción a la Mecatrónica',
-      ciclo: 1,
-      creditos: 3,
-      horasSemanales: 4,
-      tipoCompetencia: 'Específica técnica',
-      carreraId: carreraC11.id,
-    },
-    {
-      codigo: 'MI102',
-      nombre: 'Dibujo y Modelado CAD Mecánico',
-      ciclo: 1,
-      creditos: 4,
-      horasSemanales: 5,
-      tipoCompetencia: 'Específica técnica',
-      carreraId: carreraC11.id,
-    },
-    {
-      codigo: 'MI103',
-      nombre: 'Fundamentos de Electricidad y Circuitos',
-      ciclo: 1,
-      creditos: 4,
-      horasSemanales: 5,
-      tipoCompetencia: 'Específica técnica',
-      carreraId: carreraC11.id,
-    },
-    {
-      codigo: 'EG101',
-      nombre: 'Técnicas de Expresión Oral y Escrita',
-      ciclo: 1,
-      creditos: 3,
-      horasSemanales: 4,
-      tipoCompetencia: 'Empleabilidad',
-      carreraId: carreraC11.id,
-    },
-    {
-      codigo: 'MA101',
-      nombre: 'Cálculo y Estadística',
-      ciclo: 1,
-      creditos: 4,
-      horasSemanales: 5,
-      tipoCompetencia: 'Empleabilidad',
-      carreraId: carreraC11.id,
-    },
-  ];
+  console.log('✅ Estudiante de prueba creado:');
+  console.log(`   - DNI: ${estudiante.dni}`);
+  console.log(`   - Password: ${defaultPassword}`);
+  console.log(`   - Estudiante: ${estudiante.nombres} ${estudiante.apellidos}`);
+  console.log(`   - Carrera: ${carrera.nombre}`);
+  console.log(`   - Sección: ${seccion.codigoSeccion}`);
 
-  for (const c of cursosC11Data) {
-    await prisma.curso.create({ data: c });
-  }
-
-  const seccionC11 = await prisma.seccion.create({
-    data: {
-      carreraId: carreraC11.id,
-      ciclo: 1,
-      codigoSeccion: 'C11-1A',
-      periodo: '2026-1',
-      aulaBase: 'Pabellón A - Aula 101',
-    },
-  });
-  console.log(`   └─ Sección base creada: ${seccionC11.codigoSeccion}`);
-
-  // =========================================================================
-  // 3. CARRERA C12: Electrónica y Automatización Industrial
-  // =========================================================================
-  const carreraC12 = await prisma.carrera.create({
-    data: {
-      codigo: 'C12',
-      nombre: 'Electrónica y Automatización Industrial',
-      sede: 'Lima - Santa Anita',
-      totalCiclos: 6,
-    },
-  });
-  console.log(`✅ Carrera creada: ${carreraC12.nombre} (${carreraC12.codigo})`);
-
-  const cursosC12Data = [
-    {
-      codigo: 'EA101',
-      nombre: 'Análisis de Circuitos Eléctricos',
-      ciclo: 1,
-      creditos: 4,
-      horasSemanales: 5,
-      tipoCompetencia: 'Específica técnica',
-      carreraId: carreraC12.id,
-    },
-    {
-      codigo: 'EA102',
-      nombre: 'Dispositivos y Mediciones Electrónicas',
-      ciclo: 1,
-      creditos: 4,
-      horasSemanales: 5,
-      tipoCompetencia: 'Específica técnica',
-      carreraId: carreraC12.id,
-    },
-    {
-      codigo: 'EA103',
-      nombre: 'Lógica Digital y Microcontroladores',
-      ciclo: 1,
-      creditos: 3,
-      horasSemanales: 4,
-      tipoCompetencia: 'Específica técnica',
-      carreraId: carreraC12.id,
-    },
-    {
-      codigo: 'EG101',
-      nombre: 'Técnicas de Expresión Oral y Escrita',
-      ciclo: 1,
-      creditos: 3,
-      horasSemanales: 4,
-      tipoCompetencia: 'Empleabilidad',
-      carreraId: carreraC12.id,
-    },
-    {
-      codigo: 'MA101',
-      nombre: 'Cálculo y Estadística',
-      ciclo: 1,
-      creditos: 4,
-      horasSemanales: 5,
-      tipoCompetencia: 'Empleabilidad',
-      carreraId: carreraC12.id,
-    },
-  ];
-
-  for (const c of cursosC12Data) {
-    await prisma.curso.create({ data: c });
-  }
-
-  const seccionC12 = await prisma.seccion.create({
-    data: {
-      carreraId: carreraC12.id,
-      ciclo: 1,
-      codigoSeccion: 'C12-1A',
-      periodo: '2026-1',
-      aulaBase: 'Pabellón C - Aula 305',
-    },
-  });
-  console.log(`   └─ Sección base creada: ${seccionC12.codigoSeccion}`);
-
-  console.log('\n✨ Seed de datos maestros completado con éxito!');
-  console.log('📌 Nota: Los estudiantes ahora se registran dinámicamente a través del endpoint POST /auth/register.');
+  console.log('✨ Seed completado con éxito!');
 }
 
 main()

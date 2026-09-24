@@ -1,20 +1,36 @@
 import { IsNotEmpty, IsNumber, IsOptional, IsPositive, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class PagarMatriculaDto {
+  @IsOptional()
+  @IsString()
+  estudianteId?: string;
+
+  @IsOptional()
+  @IsString()
+  dni?: string;
+
   @IsNumber({}, { message: 'El monto debe ser un valor numérico' })
-  @IsPositive({ message: 'El monto debe ser mayor a 0' })
-  @IsNotEmpty({ message: 'El monto es obligatorio' })
+  @Type(() => Number)
   monto: number;
 
-  @IsString()
   @IsOptional()
+  @IsString()
   moneda?: string;
 
-  @IsString()
   @IsOptional()
+  @IsString()
   concepto?: string;
 
-  @IsString()
   @IsOptional()
+  @IsString()
   transaccionId?: string;
+
+  @IsOptional()
+  @IsString()
+  numeroTarjeta?: string;
+
+  @IsOptional()
+  @IsString()
+  titular?: string;
 }

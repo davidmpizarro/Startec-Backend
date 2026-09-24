@@ -6,6 +6,7 @@ import { EstudiantesModule } from './estudiantes/estudiantes.module';
 import { MatriculaModule } from './matricula/matricula.module';
 import { HorariosModule } from './horarios/horarios.module';
 import { CarrerasModule } from './carreras/carreras.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { CarrerasModule } from './carreras/carreras.module';
     EstudiantesModule,
     MatriculaModule,
     HorariosModule,
+    DashboardModule,
   ],
 })
 export class AppModule {}

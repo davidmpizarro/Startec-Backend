@@ -81,18 +81,93 @@ export class HorariosService {
     };
   }
 
+  decodeToken(token: string): { sub?: string; dni?: string } | null {
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
+      const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
+      return payload;
+    } catch {
+      return null;
+    }
+  }
+
+  async obtenerHorarioPorDni(dni: string) {
+    const estudiante = await this.prisma.estudiante.findUnique({
+      where: { dni },
+      include: {
+        seccion: true,
+        carrera: true,
+      },
+    });
+
+    if (!estudiante) {
+      throw new NotFoundException(`Estudiante con DNI ${dni} no encontrado`);
+    }
+
+    if (!estudiante.seccionId) {
+      throw new NotFoundException(
+        'El estudiante aún no tiene una sección académica asignada por coordinación',
+      );
+    }
+
+    const sesiones = await this.prisma.sesionHorario.findMany({
+      where: { seccionId: estudiante.seccionId },
+      include: {
+        curso: true,
+        seccion: true,
+      },
+    });
+
+    sesiones.sort((a, b) => {
+      const diaDiff = ordenDias[a.dia] - ordenDias[b.dia];
+      if (diaDiff !== 0) return diaDiff;
+      return a.horaInicio.localeCompare(b.horaInicio);
+    });
+
+    return {
+      success: true,
+      data: {
+        seccion: estudiante.seccion,
+        carrera: estudiante.carrera,
+        totalSesiones: sesiones.length,
+        horarios: sesiones.map((s) => ({
+          id: s.id,
+          dia: s.dia,
+          horaInicio: s.horaInicio,
+          horaFin: s.horaFin,
+          aula: s.aula,
+          docente: s.docente,
+          curso: {
+            id: s.curso.id,
+            codigo: s.curso.codigo,
+            nombre: s.curso.nombre,
+            creditos: s.curso.creditos,
+            horasSemanales: s.curso.horasSemanales,
+            tipoCompetencia: s.curso.tipoCompetencia,
+          },
+        })),
+      },
+    };
+  }
+
   async obtenerHorarioPorSeccion(seccionId: string) {
-    const seccion = await this.prisma.seccion.findUnique({
-      where: { id: seccionId },
+    const seccion = await this.prisma.seccion.findFirst({
+      where: {
+        OR: [
+          { id: seccionId },
+          { codigoSeccion: seccionId },
+        ],
+      },
       include: { carrera: true },
     });
 
     if (!seccion) {
-      throw new NotFoundException('Sección no encontrada');
+      throw new NotFoundException(`Sección '${seccionId}' no encontrada`);
     }
 
     const sesiones = await this.prisma.sesionHorario.findMany({
-      where: { seccionId },
+      where: { seccionId: seccion.id },
       include: { curso: true },
     });
 
@@ -106,7 +181,24 @@ export class HorariosService {
       success: true,
       data: {
         seccion,
-        horarios: sesiones,
+        carrera: seccion.carrera,
+        totalSesiones: sesiones.length,
+        horarios: sesiones.map((s) => ({
+          id: s.id,
+          dia: s.dia,
+          horaInicio: s.horaInicio,
+          horaFin: s.horaFin,
+          aula: s.aula,
+          docente: s.docente,
+          curso: {
+            id: s.curso.id,
+            codigo: s.curso.codigo,
+            nombre: s.curso.nombre,
+            creditos: s.curso.creditos,
+            horasSemanales: s.curso.horasSemanales,
+            tipoCompetencia: s.curso.tipoCompetencia,
+          },
+        })),
       },
     };
   }

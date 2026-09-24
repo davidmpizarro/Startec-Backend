@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CARRERAS_TECSUP_OFICIALES } from '../estudiantes/estudiantes.service';
 
 @Injectable()
 export class CarrerasService {
@@ -19,10 +20,15 @@ export class CarrerasService {
       },
     });
 
+    const mapped = carreras.map((c) => ({
+      ...c,
+      nombre: CARRERAS_TECSUP_OFICIALES[c.codigo] || c.nombre,
+    }));
+
     return {
       success: true,
-      total: carreras.length,
-      data: carreras,
+      total: mapped.length,
+      data: mapped,
     };
   }
 
@@ -39,6 +45,10 @@ export class CarrerasService {
         },
       },
     });
+
+    if (carrera && CARRERAS_TECSUP_OFICIALES[carrera.codigo]) {
+      carrera.nombre = CARRERAS_TECSUP_OFICIALES[carrera.codigo];
+    }
 
     return {
       success: !!carrera,
