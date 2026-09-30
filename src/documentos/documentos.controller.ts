@@ -56,6 +56,16 @@ export class DocumentosController {
   }
 
   // ──────────────────────────────────────────────────────────────────────────
+  // GET /estudiantes/:estudianteId/documentos
+  // Consulta expediente y documentos del estudiante con estado global
+  // ──────────────────────────────────────────────────────────────────────────
+  @Get('estudiantes/:estudianteId/documentos')
+  @HttpCode(HttpStatus.OK)
+  obtenerDocumentosPorEstudiante(@Param('estudianteId') estudianteId: string) {
+    return this.documentosService.obtenerDocumentosPorEstudiante(estudianteId);
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
   // GET /admin/documentos
   // Panel Admin: retorna todos los postulantes con sus documentos.
   // ──────────────────────────────────────────────────────────────────────────
