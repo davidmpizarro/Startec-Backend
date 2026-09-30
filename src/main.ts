@@ -11,13 +11,14 @@ async function bootstrap() {
   app.use(json({ limit: '15mb' }));
   app.use(urlencoded({ limit: '15mb', extended: true }));
 
-  // Habilitar CORS explícitamente para startec-admin (puerto 3001) y clientes autorizados
+  // Habilitar CORS para desarrollo local y dominios de Vercel
   app.enableCors({
     origin: [
       'http://localhost:3001',
       'http://localhost:3000',
       'http://127.0.0.1:3001',
       'http://127.0.0.1:3000',
+      /\.vercel\.app$/, // Permite cualquier subdominio o preview generado por Vercel
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     allowedHeaders: ['Content-Type', 'Authorization', 'x-user-dni', 'Accept'],

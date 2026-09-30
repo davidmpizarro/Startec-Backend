@@ -102,6 +102,7 @@ model Estudiante {
   estadoMatricula     EstadoMatricula @default(NO_INICIADO)
   horarioLiberado     Boolean         @default(false) // Si coordinación ya habilitó ver el horario
   pagos               Pago[]
+  documentos          DocumentoEstudiante[]
   createdAt           DateTime        @default(now())
 }
 
@@ -116,4 +117,22 @@ model Pago {
   estado          String          // "APROBADO", "PENDIENTE", "RECHAZADO"
   transaccionId   String?         // ID de pasarela (Culqi/Niubiz/etc.)
   fechaPago       DateTime        @default(now())
+}
+
+// 7. Documentos de Admisión por Estudiante
+model DocumentoEstudiante {
+  id                String     @id @default(uuid())
+  estudianteId      String
+  estudiante        Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+  tipo              String     // 'DNI' | 'CERTIFICADO' | 'CARTA_COMPROMISO'
+  archivoUrl        String
+  nombreOriginal    String?
+  tamanoBytes       Int?
+  estado            String     @default("EN_REVISION") // 'EN_REVISION' | 'APROBADO' | 'OBSERVADO'
+  motivoObservacion String?
+  fechaSubida       DateTime   @default(now())
+  fechaRevision     DateTime?
+
+  @@index([estudianteId])
+  @@index([estado])
 }

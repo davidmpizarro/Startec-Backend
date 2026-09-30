@@ -3,10 +3,30 @@ import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
+const CARRERAS_TECSUP = [
+  { codigo: 'C1', nombre: 'Procesos Químicos y Metalúrgicos' },
+  { codigo: 'C5', nombre: 'Electrónica y Automatización Industrial' },
+  { codigo: 'C11', nombre: 'Operaciones Mineras' },
+  { codigo: 'C12', nombre: 'Producción y Gestión Industrial' },
+  { codigo: 'C14', nombre: 'Aviónica y Mecánica Aeronáutica' },
+  { codigo: 'C16', nombre: 'Mecatrónica Industrial' },
+  { codigo: 'C20', nombre: 'Administración de Redes y Comunicaciones' },
+  { codigo: 'C21', nombre: 'Mantenimiento de Maquinaria Pesada' },
+  { codigo: 'C22', nombre: 'Mantenimiento de Maquinaria de Planta' },
+  { codigo: 'C23', nombre: 'Electricidad Industrial' },
+  { codigo: 'C24', nombre: 'Diseño y Desarrollo de Software' },
+  { codigo: 'C25', nombre: 'Diseño Industrial' },
+  { codigo: 'C26', nombre: 'Diseño y Desarrollo de Videojuegos' },
+  { codigo: 'C28', nombre: 'Big data y Ciencia de Datos' },
+  { codigo: 'D12', nombre: 'Ciencia de Datos' },
+  { codigo: 'D13', nombre: 'Logística Digital' },
+  { codigo: 'D14', nombre: 'Modelado y Animación Digital' },
+];
+
 async function main() {
   console.log('🌱 Iniciando carga de datos de prueba para Tecsup (StarTec)...');
 
-  // Limpieza inicial para evitar duplicados en re-seeds
+  // Limpieza en orden relacional
   await prisma.pago.deleteMany();
   await prisma.sesionHorario.deleteMany();
   await prisma.estudiante.deleteMany();
@@ -14,18 +34,27 @@ async function main() {
   await prisma.curso.deleteMany();
   await prisma.carrera.deleteMany();
 
-  // 1. Crear Carrera C24 - Diseño y Desarrollo de Software
-  const carrera = await prisma.carrera.create({
-    data: {
-      codigo: 'C24',
-      nombre: 'Diseño y Desarrollo de Software',
-      sede: 'Lima - Santa Anita',
-      totalCiclos: 6,
-    },
-  });
-  console.log(`✅ Carrera creada: ${carrera.nombre} (${carrera.codigo})`);
+  // 1. Crear el catálogo completo de carreras Tecsup
+  const carrerasMap = new Map<string, any>();
 
-  // 2. Crear Cursos del 1er Ciclo
+  for (const c of CARRERAS_TECSUP) {
+    const carreraCreada = await prisma.carrera.create({
+      data: {
+        codigo: c.codigo,
+        nombre: c.nombre,
+        sede: 'Lima - Santa Anita',
+        totalCiclos: 6,
+      },
+    });
+    carrerasMap.set(c.codigo, carreraCreada);
+  }
+  console.log(`✅ Catálogo de ${CARRERAS_TECSUP.length} carreras creado exitosamente`);
+
+  const carreraC24 = carrerasMap.get('C24');
+  const carreraC12 = carrerasMap.get('C12');
+  const carreraC14 = carrerasMap.get('C14');
+
+  // 2. Crear Cursos del 1er Ciclo para C24
   const cursosData = [
     {
       codigo: 'CS101',
@@ -34,7 +63,7 @@ async function main() {
       creditos: 4,
       horasSemanales: 6,
       tipoCompetencia: 'Específica técnica',
-      carreraId: carrera.id,
+      carreraId: carreraC24.id,
     },
     {
       codigo: 'CS102',
@@ -43,7 +72,7 @@ async function main() {
       creditos: 4,
       horasSemanales: 5,
       tipoCompetencia: 'Específica técnica',
-      carreraId: carrera.id,
+      carreraId: carreraC24.id,
     },
     {
       codigo: 'CS103',
@@ -52,7 +81,7 @@ async function main() {
       creditos: 3,
       horasSemanales: 4,
       tipoCompetencia: 'Específica técnica',
-      carreraId: carrera.id,
+      carreraId: carreraC24.id,
     },
     {
       codigo: 'EG101',
@@ -61,7 +90,7 @@ async function main() {
       creditos: 3,
       horasSemanales: 4,
       tipoCompetencia: 'Empleabilidad',
-      carreraId: carrera.id,
+      carreraId: carreraC24.id,
     },
     {
       codigo: 'MA101',
@@ -70,7 +99,7 @@ async function main() {
       creditos: 4,
       horasSemanales: 5,
       tipoCompetencia: 'Específica técnica',
-      carreraId: carrera.id,
+      carreraId: carreraC24.id,
     },
   ];
 
@@ -79,27 +108,20 @@ async function main() {
     const curso = await prisma.curso.create({ data: c });
     cursos.push(curso);
   }
-  console.log(`✅ ${cursos.length} cursos de 1er ciclo creados`);
+  console.log(`✅ ${cursos.length} cursos de 1er ciclo creados para C24`);
 
-  // 3. Crear Sección 1A
+  // 3. Crear Sección 1A para C24
   const seccion = await prisma.seccion.create({
     data: {
-      carreraId: carrera.id,
+      carreraId: carreraC24.id,
       ciclo: 1,
       codigoSeccion: '1A',
       periodo: '2026-1',
       aulaBase: 'Pabellón B - Aula 204',
     },
   });
+
   // 3.1 Crear Secciones 1A para C12 y C14
-  const carreraC12 = await prisma.carrera.create({
-    data: {
-      codigo: 'C12',
-      nombre: 'Producción y Gestión Industrial',
-      sede: 'Lima - Santa Anita',
-      totalCiclos: 6,
-    },
-  });
   await prisma.seccion.create({
     data: {
       carreraId: carreraC12.id,
@@ -109,16 +131,8 @@ async function main() {
       aulaBase: 'Pabellón C - Aula 301',
     },
   });
-  console.log(`✅ Carrera y Sección 1A creadas para ${carreraC12.codigo}`);
+  console.log(`✅ Sección 1A creada para C12`);
 
-  const carreraC14 = await prisma.carrera.create({
-    data: {
-      codigo: 'C14',
-      nombre: 'Aviónica y Mecánica Aeronáutica',
-      sede: 'Lima - Santa Anita',
-      totalCiclos: 6,
-    },
-  });
   await prisma.seccion.create({
     data: {
       carreraId: carreraC14.id,
@@ -128,9 +142,9 @@ async function main() {
       aulaBase: 'Pabellón M - Taller 102',
     },
   });
-  console.log(`✅ Carrera y Sección 1A creadas para ${carreraC14.codigo}`);
+  console.log(`✅ Sección 1A creada para C14`);
 
-  // 4. Detalle de Horarios Semanales (Lunes a Viernes)
+  // 4. Detalle de Horarios Semanales (Lunes a Viernes) para la sección 1A de C24
   const horariosData = [
     {
       seccionId: seccion.id,
@@ -185,7 +199,7 @@ async function main() {
   console.log(`✅ ${horariosData.length} sesiones de horario asignadas a la sección 1A`);
 
   // 5. Estudiante Admitido de Prueba
-  const defaultPassword = '72123456'; // También compatible con su DNI
+  const defaultPassword = '72123456';
   const passwordHash = await bcrypt.hash(defaultPassword, 10);
 
   const estudiante = await prisma.estudiante.create({
@@ -197,7 +211,7 @@ async function main() {
       correoPersonal: 'juan.perez@gmail.com',
       correoInstitucional: 'juan.perez@tecsup.edu.pe',
       telefono: '987654321',
-      carreraId: carrera.id,
+      carreraId: carreraC24.id,
       seccionId: seccion.id,
       cicloActual: 1,
       biometriaRegistrada: false,
@@ -213,7 +227,7 @@ async function main() {
   console.log(`   - DNI: ${estudiante.dni}`);
   console.log(`   - Password: ${defaultPassword}`);
   console.log(`   - Estudiante: ${estudiante.nombres} ${estudiante.apellidos}`);
-  console.log(`   - Carrera: ${carrera.nombre}`);
+  console.log(`   - Carrera: ${carreraC24.nombre}`);
   console.log(`   - Sección: ${seccion.codigoSeccion}`);
 
   console.log('✨ Seed completado con éxito!');

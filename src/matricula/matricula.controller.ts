@@ -3,6 +3,7 @@ import {
   Post,
   Get,
   Body,
+  Query,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -50,8 +51,11 @@ export class MatriculaController {
   }
 
   @Get('historial-pagos')
-  obtenerHistorialPagos(@CurrentUser() user: any) {
-    const estudianteId = user?.id || user?.sub;
+  obtenerHistorialPagos(
+    @CurrentUser() user: any,
+    @Query('estudianteId') queryId?: string,
+  ) {
+    const estudianteId = user?.id || user?.sub || queryId;
     if (!estudianteId) {
       throw new BadRequestException('Token de autenticación requerido para consultar el historial');
     }
@@ -82,11 +86,15 @@ export class MatriculaController {
   }
 
   @Get('estado')
-  obtenerEstado(@CurrentUser() user: any) {
-    const estudianteId = user?.id || user?.sub;
+  obtenerEstado(
+    @CurrentUser() user: any,
+    @Query('estudianteId') queryId?: string,
+  ) {
+    const estudianteId = user?.id || user?.sub || queryId;
     if (!estudianteId) {
       throw new BadRequestException('Token de autenticación requerido para consultar el estado');
     }
     return this.matriculaService.obtenerEstadoMatricula(estudianteId);
   }
 }
+
