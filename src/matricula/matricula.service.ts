@@ -69,6 +69,7 @@ export class MatriculaService {
           ],
           // Se omite el bloque 'payer' para permitir el pago limpio en Sandbox sin colisión de identidades
           external_reference: estudiante.id,
+          notification_url: 'http://3.147.70.11/matricula/mercadopago-webhook',
           back_urls: {
             success: successUrl,
             failure: failureUrl,
@@ -170,18 +171,18 @@ export class MatriculaService {
                   monto,
                   moneda: paymentData.currency_id || 'PEN',
                   concepto,
-                  estado: 'PAGADO',
+                  estado: 'APROBADO',
                   transaccionId: `MP-${paymentId}`,
                 },
               }),
               this.prisma.estudiante.update({
                 where: { id: estudiante.id },
                 data: {
-                  estadoMatricula: EstadoMatricula.PAGADO_PENDIENTE_HORARIO,
+                  estadoMatricula: EstadoMatricula.MATRICULADO_CONFIRMADO,
                   horarioLiberado: true,
                   pasoActualMatricula: Math.max(
                     estudiante.pasoActualMatricula ?? 1,
-                    5, // Avanzar al siguiente hito (Paso 5 / Pagado)
+                    6, // Avanza directo al paso final
                   ),
                 },
               }),
