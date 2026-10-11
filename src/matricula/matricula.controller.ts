@@ -12,6 +12,7 @@ import {
 import { MatriculaService } from './matricula.service';
 import { PagarMatriculaDto } from './dto/pagar-matricula.dto';
 import { ConfirmarMatriculaDto } from './dto/confirmar-matricula.dto';
+import { GenerarLinkPagoDto } from './dto/generar-link-pago.dto';
 import { OptionalJwtAuthGuard } from '../common/guards/optional-jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 
@@ -19,6 +20,28 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 @Controller('matricula')
 export class MatriculaController {
   constructor(private readonly matriculaService: MatriculaService) {}
+
+  @Post('generar-link-pago')
+  @HttpCode(HttpStatus.OK)
+  generarLinkPago(
+    @CurrentUser() user: any,
+    @Body() dto: GenerarLinkPagoDto,
+  ) {
+    const estudianteId = dto?.estudianteId || user?.id || user?.sub || dto?.dni;
+    if (!estudianteId) {
+      throw new BadRequestException('ID o DNI del estudiante requerido');
+    }
+    return this.matriculaService.generarLinkPago(estudianteId, dto);
+  }
+
+  @Post('mercadopago-webhook')
+  @HttpCode(HttpStatus.OK)
+  mercadopagoWebhook(
+    @Body() payload: any,
+    @Query() query: any,
+  ) {
+    return this.matriculaService.procesarWebhookMercadoPago(payload, query);
+  }
 
   @Post('pagar')
   @HttpCode(HttpStatus.CREATED)
