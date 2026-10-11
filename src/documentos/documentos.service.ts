@@ -177,7 +177,7 @@ export class DocumentosService {
     }
 
     const docs = estudiante.documentos;
-    let estadoGlobal = 'EN_REVISION';
+    let estadoGlobal = 'PENDIENTE';
     if (docs.length > 0) {
       if (docs.some((d) => d.estado === 'OBSERVADO')) {
         estadoGlobal = 'OBSERVADO';
