@@ -67,18 +67,14 @@ export class MatriculaService {
               currency_id: 'PEN',
             },
           ],
-          payer: {
-            name: estudiante.nombres || 'Estudiante',
-            surname: estudiante.apellidos || 'Tecsup',
-            email,
-          },
+          // Se omite el bloque 'payer' para permitir el pago limpio en Sandbox sin colisión de identidades
           external_reference: estudiante.id,
           back_urls: {
             success: successUrl,
             failure: failureUrl,
             pending: pendingUrl,
           },
-          auto_return: 'approved',
+          // auto_return: 'approved', // Comentado para evitar error fatal con URLs de localhost / HTTP
           metadata: {
             estudianteId: estudiante.id,
             dni: estudiante.dni,
