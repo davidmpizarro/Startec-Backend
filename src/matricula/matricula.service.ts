@@ -162,6 +162,18 @@ export class MatriculaService {
       this.logger.log(`Estado del pago MP ${paymentId}: ${paymentData.status}`);
 
       if (paymentData.status === 'approved') {
+        const transaccionId = `MP-${paymentId}`;
+
+        // Validación estricta de idempotencia para evitar registros duplicados por reintentos de webhook
+        const pagoExistente = await this.prisma.pago.findFirst({
+          where: { transaccionId },
+        });
+
+        if (pagoExistente) {
+          this.logger.log(`El pago ${transaccionId} ya fue registrado previamente. Ignorando evento duplicado.`);
+          return { received: true, status: paymentData.status, duplicate: true };
+        }
+
         const estudianteId =
           paymentData.external_reference ||
           paymentData.metadata?.estudiante_id ||
@@ -192,7 +204,7 @@ export class MatriculaService {
                   moneda: paymentData.currency_id || 'PEN',
                   concepto,
                   estado: 'APROBADO',
-                  transaccionId: `MP-${paymentId}`,
+                  transaccionId,
                 },
               }),
               this.prisma.estudiante.update({
@@ -208,7 +220,7 @@ export class MatriculaService {
               }),
             ]);
 
-            this.logger.log(`Estudiante ${estudiante.id} actualizado a PAGADO exitosamente vía MP Webhook`);
+            this.logger.log(`Estudiante ${estudiante.id} actualizado a PAGADO exitosamente vía MP Webhook (${transaccionId})`);
           }
         }
       }
