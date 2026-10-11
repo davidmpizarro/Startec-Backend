@@ -41,8 +41,22 @@ export class MatriculaService {
       throw new BadRequestException('El estudiante ya cuenta con la matrícula confirmada');
     }
 
-    const monto = dto?.monto && Number(dto.monto) > 0 ? Number(dto.monto) : 350.0;
-    const concepto = dto?.concepto || 'Matrícula Tecsup 2027-I';
+    // Cálculo dinámico del monto: 550.0 (Matrícula) o 1100.0 (Matrícula + 1° Cuota).
+    // Si no viene o no es válido, fallback seguro a 1100.0 (NUNCA 350.0).
+    const monto =
+      dto?.monto && Number(dto.monto) > 0 ? Number(dto.monto) : 1100.0;
+
+    // Concepto dinámico según el monto seleccionado por el estudiante
+    let concepto = dto?.concepto;
+    if (!concepto) {
+      if (Math.round(monto) === 550) {
+        concepto = 'Derecho de Matrícula Tecsup 2027-I';
+      } else if (Math.round(monto) === 1100) {
+        concepto = 'Matrícula y 1° Cuota Tecsup 2027-I';
+      } else {
+        concepto = `Matrícula Tecsup 2027-I (S/ ${monto.toFixed(2)})`;
+      }
+    }
 
     const nombreCompleto = `${estudiante.nombres || ''} ${estudiante.apellidos || ''}`.trim() || 'Estudiante Tecsup';
     const email =
@@ -80,6 +94,7 @@ export class MatriculaService {
             estudianteId: estudiante.id,
             dni: estudiante.dni,
             concepto,
+            monto,
           },
         },
       });
@@ -160,9 +175,14 @@ export class MatriculaService {
           });
 
           if (estudiante) {
-            const monto = Number(paymentData.transaction_amount) || 350.0;
+            const monto =
+              Number(paymentData.transaction_amount) ||
+              Number(paymentData.metadata?.monto) ||
+              1100.0;
             const concepto =
-              paymentData.description || 'Matrícula Tecsup 2027-I (Mercado Pago)';
+              paymentData.description ||
+              paymentData.metadata?.concepto ||
+              'Matrícula Tecsup 2027-I (Mercado Pago)';
 
             await this.prisma.$transaction([
               this.prisma.pago.create({
