@@ -4,6 +4,7 @@ import {
   Get,
   Body,
   Query,
+  Param,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -28,6 +29,20 @@ export class MatriculaController {
     @Body() dto: GenerarLinkPagoDto,
   ) {
     const estudianteId = dto?.estudianteId || user?.id || user?.sub || dto?.dni;
+    if (!estudianteId) {
+      throw new BadRequestException('ID o DNI del estudiante requerido');
+    }
+    return this.matriculaService.generarLinkPago(estudianteId, dto);
+  }
+
+  @Post('generar-link-pago/:estudianteId')
+  @HttpCode(HttpStatus.OK)
+  generarLinkPagoConParam(
+    @Param('estudianteId') paramEstudianteId: string,
+    @CurrentUser() user: any,
+    @Body() dto: GenerarLinkPagoDto,
+  ) {
+    const estudianteId = paramEstudianteId || dto?.estudianteId || user?.id || user?.sub || dto?.dni;
     if (!estudianteId) {
       throw new BadRequestException('ID o DNI del estudiante requerido');
     }
