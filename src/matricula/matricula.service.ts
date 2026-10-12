@@ -21,6 +21,8 @@ export class MatriculaService {
   }
 
   async generarLinkPago(estudianteId: string, dto?: GenerarLinkPagoDto) {
+    this.logger.log(`[generarLinkPago] Payload recibido - estudianteId param: ${estudianteId}, DTO: ${JSON.stringify(dto)}`);
+
     const idABuscar = estudianteId || dto?.estudianteId || dto?.dni;
     if (!idABuscar) {
       throw new BadRequestException('ID o DNI del estudiante requerido');
@@ -41,12 +43,19 @@ export class MatriculaService {
       throw new BadRequestException('El estudiante ya cuenta con la matrícula confirmada');
     }
 
-    // Cálculo dinámico del monto: 550.0 (Matrícula) o 1100.0 (Matrícula + 1° Cuota).
-    // Si no viene o no es válido, fallback seguro a 1100.0 (NUNCA 350.0).
-    const monto =
-      dto?.monto && Number(dto.monto) > 0 ? Number(dto.monto) : 1100.0;
+    // Extraer y parsear el monto recibido garantizando la lectura de string o number
+    let montoCalculado = 0;
+    if (dto?.monto !== undefined && dto?.monto !== null) {
+      const parsed = Number(dto.monto);
+      if (!isNaN(parsed) && parsed > 0) {
+        montoCalculado = parsed;
+      }
+    }
 
-    // Concepto dinámico según el monto seleccionado por el estudiante
+    // Asignar monto final: si se envió 550.0 se respeta; de lo contrario fallback seguro a 1100.0
+    const monto = montoCalculado > 0 ? montoCalculado : 1100.0;
+
+    // Concepto dinámico según el monto asignado o recibido
     let concepto = dto?.concepto;
     if (!concepto) {
       if (Math.round(monto) === 550) {
@@ -57,6 +66,8 @@ export class MatriculaService {
         concepto = `Matrícula Tecsup 2027-I (S/ ${monto.toFixed(2)})`;
       }
     }
+
+    this.logger.log(`[generarLinkPago] Monto procesado final: S/ ${monto} | Concepto: "${concepto}"`);
 
     const nombreCompleto = `${estudiante.nombres || ''} ${estudiante.apellidos || ''}`.trim() || 'Estudiante Tecsup';
     const email =
@@ -81,7 +92,6 @@ export class MatriculaService {
               currency_id: 'PEN',
             },
           ],
-          // Se omite el bloque 'payer' para permitir el pago limpio en Sandbox sin colisión de identidades
           external_reference: estudiante.id,
           notification_url: 'http://3.147.70.11/matricula/mercadopago-webhook',
           back_urls: {
@@ -89,7 +99,6 @@ export class MatriculaService {
             failure: failureUrl,
             pending: pendingUrl,
           },
-          // auto_return: 'approved', // Comentado para evitar error fatal con URLs de localhost / HTTP
           metadata: {
             estudianteId: estudiante.id,
             dni: estudiante.dni,
@@ -117,7 +126,6 @@ export class MatriculaService {
       };
     } catch (error: any) {
       this.logger.error('Error creando preferencia en Mercado Pago', error?.message || error);
-      // Fallback amigable si el access token de prueba no puede conectarse con MP API
       const fallbackUrl = `https://sandbox.mercadopago.com.pe/checkout/v1/redirect?pref_id=mock-pref-${estudiante.id}`;
       return {
         success: true,
