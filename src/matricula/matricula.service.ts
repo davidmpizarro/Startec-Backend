@@ -220,9 +220,10 @@ export class MatriculaService {
                 data: {
                   estadoMatricula: EstadoMatricula.MATRICULADO_CONFIRMADO,
                   horarioLiberado: true,
+                  // Avanza al paso 5 (Confirmación de matrícula) tras el pago aprobado
                   pasoActualMatricula: Math.max(
                     estudiante.pasoActualMatricula ?? 1,
-                    6, // Avanza directo al paso final
+                    5,
                   ),
                 },
               }),
