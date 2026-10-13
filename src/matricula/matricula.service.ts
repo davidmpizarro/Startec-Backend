@@ -75,9 +75,9 @@ export class MatriculaService {
       estudiante.correoInstitucional ||
       `estudiante_${estudiante.dni}@tecsup.edu.pe`;
 
-    const successUrl = process.env.MP_SUCCESS_URL || 'http://localhost:3000/matricula/exito';
-    const failureUrl = process.env.MP_FAILURE_URL || 'http://localhost:3000/matricula/error';
-    const pendingUrl = process.env.MP_PENDING_URL || 'http://localhost:3000/matricula/pendiente';
+    // Puente HTTPS que abre la app Flutter por deep link (startec://pago-exitoso, etc.)
+    const returnBase =
+      process.env.MP_RETURN_BASE_URL || 'http://3.147.70.11/matricula/retorno';
 
     try {
       const preference = new Preference(this.mpClient);
@@ -95,10 +95,11 @@ export class MatriculaService {
           external_reference: estudiante.id,
           notification_url: 'http://3.147.70.11/matricula/mercadopago-webhook',
           back_urls: {
-            success: successUrl,
-            failure: failureUrl,
-            pending: pendingUrl,
+            success: `${returnBase}/exito`,
+            failure: `${returnBase}/fallido`,
+            pending: `${returnBase}/pendiente`,
           },
+          auto_return: 'approved',
           metadata: {
             estudianteId: estudiante.id,
             dni: estudiante.dni,
