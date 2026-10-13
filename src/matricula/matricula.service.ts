@@ -99,7 +99,6 @@ export class MatriculaService {
             failure: `${returnBase}/fallido`,
             pending: `${returnBase}/pendiente`,
           },
-          auto_return: 'approved',
           metadata: {
             estudianteId: estudiante.id,
             dni: estudiante.dni,
