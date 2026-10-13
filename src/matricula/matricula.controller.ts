@@ -9,7 +9,6 @@ import {
   HttpCode,
   HttpStatus,
   BadRequestException,
-  Header,
 } from '@nestjs/common';
 import { MatriculaService } from './matricula.service';
 import { PagarMatriculaDto } from './dto/pagar-matricula.dto';
@@ -57,44 +56,6 @@ export class MatriculaController {
     @Query() query: any,
   ) {
     return this.matriculaService.procesarWebhookMercadoPago(payload, query);
-  }
-
-    // Puente de retorno de Mercado Pago -> abre la app Flutter por deep link
-  @Get('retorno/:estado')
-  @Header('Content-Type', 'text/html; charset=utf-8')
-  retornoMercadoPago(@Param('estado') estado: string) {
-    const destinos: Record<string, string> = {
-      exito: 'pago-exitoso',
-      fallido: 'pago-fallido',
-      pendiente: 'pago-pendiente',
-    };
-    const destino = destinos[estado];
-    if (!destino) {
-      throw new BadRequestException('Estado de retorno inválido');
-    }
-    const deepLink = `startec://${destino}`;
-
-    return `<!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Volviendo a STARTEC</title>
-  <style>
-    body { font-family: Arial, sans-serif; background:#F7F5FC; display:flex; flex-direction:column;
-           align-items:center; justify-content:center; min-height:100vh; margin:0; padding:24px;
-           text-align:center; color:#1E1435; }
-    a { background:#B96DFF; color:#fff; text-decoration:none; padding:14px 28px;
-        border-radius:30px; font-weight:bold; margin-top:20px; }
-  </style>
-</head>
-<body>
-  <h2>Regresando a la app STARTEC...</h2>
-  <p>Si no se abre automáticamente, toca el botón.</p>
-  <a href="${deepLink}">Abrir STARTEC</a>
-  <script>window.location.href = "${deepLink}";</script>
-</body>
-</html>`;
   }
 
   @Post('pagar')
