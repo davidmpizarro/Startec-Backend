@@ -358,7 +358,8 @@ export class MatriculaService {
       data: {
         estadoMatricula: EstadoMatricula.MATRICULADO_CONFIRMADO,
         horarioLiberado: true,
-        pasoActualMatricula: Math.max(estudiante.pasoActualMatricula ?? 1, 6),
+        // Avanza a paso 5 (pasarela aprobada); el paso 6 se activa al confirmar en la app
+        pasoActualMatricula: Math.max(estudiante.pasoActualMatricula ?? 1, 5),
       },
       include: { carrera: true, seccion: true },
     });
@@ -577,7 +578,8 @@ export class MatriculaService {
         data: {
           estadoMatricula: EstadoMatricula.MATRICULADO_CONFIRMADO,
           horarioLiberado: true,
-          pasoActualMatricula: Math.max(estudiante.pasoActualMatricula ?? 1, 6),
+          // Avanza a paso 5 (pasarela aprobada); el paso 6 se activa al confirmar en la app
+          pasoActualMatricula: Math.max(estudiante.pasoActualMatricula ?? 1, 5),
         },
         include: { carrera: true, seccion: true },
       }),
