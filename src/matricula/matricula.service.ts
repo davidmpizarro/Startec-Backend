@@ -218,9 +218,10 @@ export class MatriculaService {
               this.prisma.estudiante.update({
                 where: { id: estudiante.id },
                 data: {
-                  estadoMatricula: EstadoMatricula.MATRICULADO_CONFIRMADO,
+                  // El pago NO confirma la matrícula: eso solo ocurre en confirmarMatricula()
+                  estadoMatricula: EstadoMatricula.PAGADO_PENDIENTE_HORARIO,
                   horarioLiberado: true,
-                  // Avanza al paso 5 (Confirmación de matrícula) tras el pago aprobado
+                  // Paso 5 (Pasarela de pagos) completado; el paso 6 lo confirma el usuario en la app
                   pasoActualMatricula: Math.max(
                     estudiante.pasoActualMatricula ?? 1,
                     5,
@@ -356,9 +357,10 @@ export class MatriculaService {
     const actualizado = await this.prisma.estudiante.update({
       where: { id: estudiante.id },
       data: {
+        // Único lugar donde se asigna MATRICULADO_CONFIRMADO (el usuario pulsó "Confirmar matrícula")
         estadoMatricula: EstadoMatricula.MATRICULADO_CONFIRMADO,
         horarioLiberado: true,
-        // Avanza a paso 5 (pasarela aprobada); el paso 6 se activa al confirmar en la app
+        // El paso pasa a 6 desde la app vía PATCH /estudiantes/:id/paso; aquí se garantiza mínimo 5
         pasoActualMatricula: Math.max(estudiante.pasoActualMatricula ?? 1, 5),
       },
       include: { carrera: true, seccion: true },
@@ -576,9 +578,10 @@ export class MatriculaService {
       this.prisma.estudiante.update({
         where: { id: estudiante.id },
         data: {
-          estadoMatricula: EstadoMatricula.MATRICULADO_CONFIRMADO,
+          // El pago NO confirma la matrícula: eso solo ocurre en confirmarMatricula()
+          estadoMatricula: EstadoMatricula.PAGADO_PENDIENTE_HORARIO,
           horarioLiberado: true,
-          // Avanza a paso 5 (pasarela aprobada); el paso 6 se activa al confirmar en la app
+          // Paso 5 (Pasarela de pagos) completado; el paso 6 lo confirma el usuario en la app
           pasoActualMatricula: Math.max(estudiante.pasoActualMatricula ?? 1, 5),
         },
         include: { carrera: true, seccion: true },
